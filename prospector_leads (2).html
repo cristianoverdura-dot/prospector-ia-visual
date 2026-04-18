@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prospector — Fábrica de Sites IA Visual</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0d0f14;
+  --bg2:       #13161e;
+  --bg3:       #1a1e2a;
+  --surface:   #1e2330;
+  --surface2:  #252b3b;
+  --blue:      #335084;
+  --blue-glow: #3d5f9e;
+  --blue-lt:   #5578b8;
+  --sand:      #D3D1C5;
+  --sand-dim:  #9e9c92;
+  --sand-dark: #6b6960;
+  --text:      #e8e6de;
+  --text2:     #9e9c92;
+  --text3:     #5c5a55;
+  --border:    #2a2f3f;
+  --border2:   #333a50;
+  --green:     #2ecc71;
+  --red:       #e74c3c;
+  --amber:     #f39c12;
+  --radius:    12px;
+  --radius-sm: 7px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px);
+  pointer-events: none;
+  z-index: 0;
+}
+.header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+  width: 36px; height: 36px;
+  background: var(--blue);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px; font-weight: 700;
+  color: var(--sand);
+  letter-spacing: -1px;
+  box-shadow: 0 0 14px rgba(51,80,132,0.4);
+}
+.logo-name { font-size: 13px; font-weight: 600; color: var(--text); display: block; }
+.logo-sub { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-top: 1px; }
+.main { max-width: 1060px; margin: 0 auto; padding: 28px 20px; position: relative; z-index: 1; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.stat::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.stat:nth-child(1)::after { background: var(--sand); opacity: 0.5; }
+.stat:nth-child(2)::after { background: var(--red); opacity: 0.6; }
+.stat:nth-child(3)::after { background: var(--blue-lt); }
+.stat:nth-child(4)::after { background: var(--green); opacity: 0.7; }
+.stat-val { font-family: 'Space Mono', monospace; font-size: 30px; font-weight: 700; color: var(--sand); line-height: 1; letter-spacing: -1px; }
+.stat-lbl { font-size: 10px; color: var(--text3); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.07em; }
+.tabs {
+  display: flex; gap: 2px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-bottom: 20px;
+}
+.tab {
+  flex: 1; padding: 9px 16px; border: none; background: none;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; font-weight: 600;
+  color: var(--text2); cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.tab:hover { color: var(--text); background: var(--surface); }
+.tab.active { background: var(--blue); color: var(--sand); box-shadow: 0 0 12px rgba(51,80,132,0.35); }
+.panel { display: none; }
+.panel.active { display: block; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 10px; font-weight: 700;
+  color: var(--blue-lt);
+  margin-bottom: 16px;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px; height: 14px;
+  background: var(--blue);
+  border-radius: 2px;
+}
+label {
+  font-size: 10px; font-weight: 600;
+  color: var(--text3);
+  display: block; margin-bottom: 5px;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+input, select, textarea {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px; color: var(--text);
+  outline: none;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(51,80,132,0.18);
+}
+select option { background: var(--bg3); }
+textarea { resize: vertical; min-height: 82px; line-height: 1.6; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text);
+  transition: all 0.15s;
+  text-decoration: none;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.btn:hover { background: var(--bg3); border-color: var(--blue); color: var(--sand); }
+.btn:active { transform: scale(0.97); }
+.btn-blue {
+  background: var(--blue); color: var(--sand);
+  border-color: var(--blue-glow);
+  box-shadow: 0 0 14px rgba(51,80,132,0.35);
+}
+.btn-blue:hover { background: var(--blue-glow); box-shadow: 0 0 22px rgba(51,80,132,0.55); color: #fff; }
+.btn-wpp {
+  background: #0e6b30; color: #fff; border-color: #1a9947;
+  box-shadow: 0 0 12px rgba(14,107,48,0.3);
+}
+.btn-wpp:hover { background: #0c5c28; box-shadow: 0 0 20px rgba(14,107,48,0.5); }
+.btn-sm { padding: 5px 12px; font-size: 10px; }
+.btn-export {
+  background: transparent; border: 1px solid var(--sand-dark);
+  color: var(--sand); font-size: 10px;
+}
+.btn-export:hover { border-color: var(--sand); background: rgba(211,209,197,0.07); color: var(--sand); }
+.btn-maps {
+  background: transparent; border: 1px solid var(--blue);
+  color: var(--blue-lt);
+  box-shadow: 0 0 10px rgba(51,80,132,0.15);
+}
+.btn-maps:hover { background: rgba(51,80,132,0.15); color: var(--sand); box-shadow: 0 0 18px rgba(51,80,132,0.4); }
+.seg-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.seg-pill {
+  padding: 5px 13px; border-radius: 20px;
+  font-size: 10px; font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  background: transparent; color: var(--text2);
+  transition: all 0.15s;
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.seg-pill:hover { border-color: var(--blue-lt); color: var(--sand); }
+.seg-pill.active { background: var(--blue); color: var(--sand); border-color: var(--blue-glow); box-shadow: 0 0 10px rgba(51,80,132,0.3); }
+.tone-wrap { display: flex; gap: 6px; margin-bottom: 14px; }
+.tone-pill {
+  padding: 5px 13px; border-radius: 20px;
+  font-size: 10px; font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  background: transparent; color: var(--text2);
+  transition: all 0.15s;
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.tone-pill.active { background: #0e3a1e; color: var(--green); border-color: #1a7a44; }
+.script-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+  padding: 9px 13px;
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: border 0.15s;
+}
+.script-row:hover { border-color: var(--blue); }
+.script-num { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--blue-lt); min-width: 20px; }
+.script-code { flex: 1; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--sand-dim); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.link-blue { font-size: 10px; font-weight: 700; color: var(--blue-lt); text-decoration: none; white-space: nowrap; letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.15s; }
+.link-blue:hover { color: var(--sand); }
+.tip {
+  font-size: 12px; color: var(--text2);
+  background: rgba(51,80,132,0.1);
+  border-radius: var(--radius-sm);
+  padding: 9px 13px; margin-bottom: 14px;
+  border-left: 2px solid var(--blue);
+  line-height: 1.5;
+}
+.msg-preview {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-size: 13px; line-height: 1.7;
+  white-space: pre-wrap; color: var(--sand-dim);
+  margin-top: 12px; min-height: 120px;
+}
+.btn-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.confirm-msg { font-size: 10px; color: var(--green); font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; }
+.badge {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 9px; border-radius: 20px;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.badge-nao { background: rgba(231,76,60,0.15); color: #e74c3c; border: 1px solid rgba(231,76,60,0.3); }
+.badge-ruim { background: rgba(243,156,18,0.15); color: #f39c12; border: 1px solid rgba(243,156,18,0.3); }
+.badge-sim { background: rgba(46,204,113,0.12); color: #2ecc71; border: 1px solid rgba(46,204,113,0.25); }
+.badge-novo { background: rgba(211,209,197,0.07); color: var(--text3); border: 1px solid var(--border); }
+.badge-contato { background: rgba(51,80,132,0.2); color: var(--blue-lt); border: 1px solid rgba(51,80,132,0.4); }
+.badge-respondeu { background: rgba(46,204,113,0.1); color: #2ecc71; border: 1px solid rgba(46,204,113,0.2); }
+.badge-fechado { background: rgba(46,204,113,0.2); color: #27ae60; border: 1px solid rgba(46,204,113,0.4); }
+.badge-naointeressou { background: rgba(231,76,60,0.1); color: #e74c3c; border: 1px solid rgba(231,76,60,0.2); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  text-align: left; font-size: 10px; font-weight: 700;
+  color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(51,80,132,0.05); }
+.actions { display: flex; gap: 6px; }
+.filter-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-row input { flex: 1; min-width: 160px; }
+.filter-row select { width: auto; min-width: 150px; }
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
+.empty-mono { font-family: 'Space Mono', monospace; font-size: 24px; color: var(--border2); margin-bottom: 10px; }
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.72);
+  z-index: 200; align-items: center; justify-content: center; padding: 20px;
+  backdrop-filter: blur(4px);
+}
+.overlay.open { display: flex; }
+.modal {
+  background: var(--bg2); border-radius: var(--radius);
+  border: 1px solid var(--border2);
+  padding: 26px; width: 100%; max-width: 560px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 0 50px rgba(0,0,0,0.7);
+}
+.modal-title { font-size: 10px; font-weight: 700; color: var(--blue-lt); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.12em; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+@media (max-width: 640px) {
+  .stats { grid-template-columns: 1fr 1fr; }
+  .row2, .row3 { grid-template-columns: 1fr; }
+  .header { padding: 0 16px; }
+  .main { padding: 16px 12px; }
+  .tab { font-size: 9px; padding: 8px 6px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <img src="data:image/png;base64,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" alt="IA Visual" style="height:44px;width:auto;display:block;">
+    <span class="logo-sub" style="margin-left:6px;">Prospector de Clientes</span>
+  </div>
+  <span id="sync-status" style="font-size:11px;color:var(--blue-lt);font-family:'Space Mono',monospace;margin-right:8px;"></span>
+  <button class="btn btn-sm" onclick="carregarLeads()" style="margin-right:6px;" title="Recarregar leads do Sheets">&#8635; Sync</button>
+  <button class="btn btn-export" onclick="exportarExcel()">&#8659; Exportar Excel</button>
+</div>
+
+<div id="toast" style="display:none;position:fixed;bottom:24px;right:24px;z-index:999;padding:10px 18px;border-radius:8px;border:1px solid;font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;font-family:'Space Grotesk',sans-serif;transition:opacity 0.4s;pointer-events:none;"></div>
+<div class="main">
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total de leads</div></div>
+    <div class="stat"><div class="stat-val" id="s-semsite">0</div><div class="stat-lbl">Sem site</div></div>
+    <div class="stat"><div class="stat-val" id="s-contatados">0</div><div class="stat-lbl">Contatados</div></div>
+    <div class="stat"><div class="stat-val" id="s-fechados">0</div><div class="stat-lbl">Fechados</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-btn-buscar" onclick="setTab('buscar')">&#9670; Buscar Leads</button>
+    <button class="tab" id="tab-btn-adicionar" onclick="setTab('adicionar')">&#43; Adicionar Lead</button>
+    <button class="tab" id="tab-btn-lista" onclick="setTab('lista')">&#9776; Lista de Leads</button>
+  </div>
+
+  <div class="panel active" id="panel-buscar">
+    <div class="card">
+      <div class="card-title">Segmento alvo</div>
+      <div class="seg-wrap">
+        <button class="seg-pill active" onclick="selSeg(this,'restaurantes')">Restaurantes</button>
+        <button class="seg-pill" onclick="selSeg(this,'clínicas')">Clínicas</button>
+        <button class="seg-pill" onclick="selSeg(this,'salões de beleza')">Salões</button>
+        <button class="seg-pill" onclick="selSeg(this,'advogados')">Advogados</button>
+        <button class="seg-pill" onclick="selSeg(this,'academias')">Academias</button>
+        <button class="seg-pill" onclick="selSeg(this,'imobiliárias')">Imobiliárias</button>
+        <button class="seg-pill" onclick="selSeg(this,'contabilidade')">Contabilidade</button>
+        <button class="seg-pill" onclick="selSeg(this,'dentistas')">Dentistas</button>
+        <button class="seg-pill" onclick="selSeg(this,'pet shops')">Pet Shops</button>
+        <button class="seg-pill" onclick="selSeg(this,'lojas de roupa')">Moda</button>
+      </div>
+      <input type="text" id="seg-custom" placeholder="Ou digite outro segmento..." oninput="customSegInput(this)">
+    </div>
+    <div class="card">
+      <div class="card-title">Localização</div>
+      <div class="row2">
+        <div><label>Cidade</label><input type="text" id="cidade" value="Sorocaba" oninput="atualizarLinks()"></div>
+        <div><label>Bairro (opcional)</label><input type="text" id="bairro" placeholder="Ex: Centro" oninput="atualizarLinks()"></div>
+      </div>
+      <a id="maps-link" href="#" target="_blank" class="btn btn-maps">&#9654; Abrir Google Maps</a>
+    </div>
+    <div class="card">
+      <div class="card-title">Scripts de busca</div>
+      <div class="tip">Clique em "Buscar" para abrir o Google com a pesquisa pronta. Foque em negócios sem site — são os melhores leads!</div>
+      <div id="scripts-container"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-adicionar">
+    <div class="card">
+      <div class="card-title">Dados do lead</div>
+      <div class="row2">
+        <div><label>Nome do negócio *</label><input type="text" id="f-nome" placeholder="Ex: Restaurante do João"></div>
+        <div><label>Segmento</label><input type="text" id="f-seg" placeholder="Ex: Restaurante"></div>
+      </div>
+      <div class="row2">
+        <div><label>WhatsApp (com DDD)</label><input type="text" id="f-tel" placeholder="15988887777"></div>
+        <div><label>Cidade</label><input type="text" id="f-cidade" placeholder="Sorocaba"></div>
+      </div>
+      <div class="row3">
+        <div><label>Tem site?</label>
+          <select id="f-site">
+            <option value="nao">Não tem site</option>
+            <option value="ruim">Site desatualizado</option>
+            <option value="sim">Tem site</option>
+          </select>
+        </div>
+        <div><label>Redes sociais?</label>
+          <select id="f-social">
+            <option value="sim">Sim</option>
+            <option value="nao">Não</option>
+          </select>
+        </div>
+        <div><label>Status</label>
+          <select id="f-status">
+            <option value="novo">Novo</option>
+            <option value="contato">Contato enviado</option>
+            <option value="respondeu">Respondeu</option>
+            <option value="fechado">Fechado</option>
+            <option value="naointeressou">Não interessou</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;"><label>Observações</label><textarea id="f-obs" placeholder="Anotações sobre o lead..."></textarea></div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button class="btn btn-blue" onclick="adicionarLead()">&#43; Adicionar Lead</button>
+        <span id="add-ok" class="confirm-msg" style="display:none;">&#10003; Lead adicionado!</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Gerar mensagem de prospecção</div>
+      <div class="tip">Preencha os dados acima, escolha o tom e gere a mensagem pronta para enviar.</div>
+      <div class="tone-wrap">
+        <button class="tone-pill active" onclick="selTone(this,'direto')">Direto</button>
+        <button class="tone-pill" onclick="selTone(this,'amigavel')">Amigável</button>
+        <button class="tone-pill" onclick="selTone(this,'formal')">Formal</button>
+      </div>
+      <button class="btn" onclick="gerarMensagem()">&#9670; Gerar mensagem</button>
+      <div id="msg-area" style="display:none;">
+        <div class="msg-preview" id="msg-texto"></div>
+        <div class="btn-row">
+          <button class="btn btn-wpp" onclick="enviarWpp()">&#9654; Enviar WhatsApp</button>
+          <button class="btn" onclick="copiarMensagem()">Copiar</button>
+          <button class="btn btn-sm" onclick="gerarMensagem()">Outra versão</button>
+          <span id="copy-ok" class="confirm-msg" style="display:none;">&#10003; Copiado!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-lista">
+    <div class="filter-row">
+      <input type="text" id="filtro-nome" placeholder="Buscar por nome..." oninput="renderTabela()">
+      <select id="filtro-seg" onchange="renderTabela()" style="min-width:160px;">
+        <option value="">Todos os segmentos</option>
+      </select>
+      <select id="filtro-status" onchange="renderTabela()">
+        <option value="">Todos os status</option>
+        <option value="novo">Novo</option>
+        <option value="contato">Contato enviado</option>
+        <option value="respondeu">Respondeu</option>
+        <option value="fechado">Fechado</option>
+        <option value="naointeressou">Não interessou</option>
+      </select>
+      <select id="filtro-site" onchange="renderTabela()">
+        <option value="">Todos (site)</option>
+        <option value="nao">Sem site</option>
+        <option value="ruim">Desatualizado</option>
+        <option value="sim">Com site</option>
+      </select>
+    </div>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th>Nome</th><th>Segmento</th><th>Cidade</th>
+            <th>WhatsApp</th><th>Site</th><th>Status</th><th>Ações</th>
+          </tr></thead>
+          <tbody id="leads-tbody"></tbody>
+        </table>
+        <div id="lista-empty" class="empty-state" style="display:none;">
+          <div class="empty-mono">[ _ ]</div>
+          <div style="font-size:13px; color:var(--text2);">Nenhum lead cadastrado ainda.</div>
+          <div style="font-size:10px; color:var(--text3); margin-top:4px; text-transform:uppercase; letter-spacing:0.07em;">Vá em Adicionar Lead para começar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">&#9670; Editar lead</div>
+    <div class="row2">
+      <div><label>Nome *</label><input type="text" id="e-nome"></div>
+      <div><label>Segmento</label><input type="text" id="e-seg"></div>
+    </div>
+    <div class="row2">
+      <div><label>WhatsApp</label><input type="text" id="e-tel"></div>
+      <div><label>Cidade</label><input type="text" id="e-cidade"></div>
+    </div>
+    <div class="row3">
+      <div><label>Site?</label>
+        <select id="e-site">
+          <option value="nao">Não tem</option>
+          <option value="ruim">Desatualizado</option>
+          <option value="sim">Tem site</option>
+        </select>
+      </div>
+      <div><label>Redes?</label>
+        <select id="e-social">
+          <option value="sim">Sim</option>
+          <option value="nao">Não</option>
+        </select>
+      </div>
+      <div><label>Status</label>
+        <select id="e-status">
+          <option value="novo">Novo</option>
+          <option value="contato">Contato enviado</option>
+          <option value="respondeu">Respondeu</option>
+          <option value="fechado">Fechado</option>
+          <option value="naointeressou">Não interessou</option>
+        </select>
+      </div>
+    </div>
+    <div><label>Observações</label><textarea id="e-obs"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-blue" onclick="salvarEdicao()">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyB8hr5iQTrbzJCZJjU5VHs484Lr8HjGbU1GB5G0hC4bHNs53QK2U4Ui2-pO-KBXmAy/exec';
+
+var leads = [];
+var segAtual = 'restaurantes';
+var toneAtual = 'direto';
+var editIdx = -1;
+var sheetReady = false;
+
+function showToast(msg, tipo) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = tipo === 'erro' ? '#7a1a14' : tipo === 'ok' ? '#0e3a1e' : '#1e2330';
+  t.style.borderColor = tipo === 'erro' ? '#e74c3c' : tipo === 'ok' ? '#2ecc71' : '#335084';
+  t.style.color = tipo === 'erro' ? '#e74c3c' : tipo === 'ok' ? '#2ecc71' : '#5578b8';
+  t.style.display = 'block'; t.style.opacity = '1';
+  setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.style.display='none'; },400); }, 3000);
+}
+
+function setLoading(on) {
+  var el = document.getElementById('sync-status');
+  if(el) el.textContent = on ? 'Sincronizando...' : '';
+}
+
+
+async function iniciarSheet() {
+  try {
+    sheetReady = true;
+    await carregarLeads();
+  } catch(e) {
+    showToast('Erro ao conectar. Tente novamente.', 'erro');
+  }
+}
+
+async function carregarLeads() {
+  setLoading(true);
+  try {
+    var res = await fetch(SCRIPT_URL);
+    var data = await res.json();
+    leads = [];
+    if (data.data && data.data.length > 1) {
+      for (var i = 1; i < data.data.length; i++) {
+        var row = data.data[i];
+        if (!row[1]) continue;
+        leads.push({
+          id: row[0]||String(i),
+          nome: row[1]||'',
+          seg: row[2]||'',
+          cidade: row[3]||'',
+          tel: row[4]||'',
+          site: row[5]==='Sem site'?'nao': row[5]==='Site desatualizado'?'ruim':'sim',
+          social: row[6]==='Sim'?'sim':'nao',
+          status: row[7]==='Contato enviado'?'contato': row[7]==='Respondeu'?'respondeu': row[7]==='Fechado'?'fechado': row[7]==='Não interessou'?'naointeressou':'novo',
+          obs: row[8]||'',
+          data: row[9]||'',
+          _row: i+1
+        });
+      }
+    }
+    atualizarStats();
+    renderTabela();
+    showToast('✓ '+leads.length+' leads carregados', 'ok');
+  } catch(e) {
+    showToast('Erro ao carregar leads', 'erro');
+  }
+  setLoading(false);
+}
+
+async function salvarLeads() {
+  localStorage.setItem('iavisual_leads', JSON.stringify(leads));
+}
+
+async function appendLead(lead) {
+  var sl={nao:'Sem site',ruim:'Site desatualizado',sim:'Com site'};
+  var st={novo:'Novo',contato:'Contato enviado',respondeu:'Respondeu',fechado:'Fechado',naointeressou:'Não interessou'};
+  var row=[lead.id,lead.nome,lead.seg,lead.cidade,lead.tel,sl[lead.site]||'',lead.social==='sim'?'Sim':'Não',st[lead.status]||'',lead.obs,lead.data];
+  var res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({action:'append', row:row})
+  });
+  var data = await res.json();
+  if (data.status !== 'ok') throw new Error('Erro ao salvar');
+}
+
+async function atualizarLeadSheet(lead) {
+  var sl={nao:'Sem site',ruim:'Site desatualizado',sim:'Com site'};
+  var st={novo:'Novo',contato:'Contato enviado',respondeu:'Respondeu',fechado:'Fechado',naointeressou:'Não interessou'};
+  var row=[lead.id,lead.nome,lead.seg,lead.cidade,lead.tel,sl[lead.site]||'',lead.social==='sim'?'Sim':'Não',st[lead.status]||'',lead.obs,lead.data];
+  var res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({action:'update', rowIndex:lead._row, row:row})
+  });
+  var data = await res.json();
+  if (data.status !== 'ok') throw new Error('Erro ao atualizar');
+}
+
+async function deletarLeadSheet(lead) {
+  var res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({action:'delete', rowIndex:lead._row})
+  });
+  var data = await res.json();
+  if (data.status !== 'ok') throw new Error('Erro ao deletar');
+}
+
+
+async function adicionarLead() {
+  var nome = document.getElementById('f-nome').value.trim();
+  if (!nome) { alert('Preencha o nome do negócio!'); return; }
+  var lead = {
+    id: String(Date.now()), nome: nome,
+    seg: document.getElementById('f-seg').value.trim(),
+    tel: document.getElementById('f-tel').value.trim(),
+    cidade: document.getElementById('f-cidade').value.trim() || 'Sorocaba',
+    site: document.getElementById('f-site').value,
+    social: document.getElementById('f-social').value,
+    status: document.getElementById('f-status').value,
+    obs: document.getElementById('f-obs').value.trim(),
+    data: new Date().toLocaleDateString('pt-BR'),
+  };
+  setLoading(true);
+  try {
+    await appendLead(lead);
+    showToast('✓ Lead salvo no Google Sheets!', 'ok');
+    await carregarLeads();
+  } catch(e) {
+    showToast('Erro ao salvar: '+e.message, 'erro');
+    setLoading(false);
+    return;
+  }
+  ['f-nome','f-seg','f-tel','f-obs'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('f-site').value='nao';
+  document.getElementById('f-status').value='novo';
+  var ok = document.getElementById('add-ok');
+  ok.style.display='inline'; setTimeout(function(){ ok.style.display='none'; }, 2500);
+}
+
+function getMensagem(nome, temSite, tone) {
+  var ag = 'Fábrica de Sites IA Visual', url = 'https://fabricadesitesiavisual.xyz/';
+  var b = {
+    nao: {
+      direto: ['Olá! Vi o '+nome+' no Google e percebi que vocês ainda não têm um site.\n\nTer um site profissional faz toda a diferença: mais clientes encontram seu negócio, mais confiança, mais vendas.\n\nSou da '+ag+' — criamos sites com inteligência artificial, rápido e com ótimo custo-benefício.\n\nVeja: '+url+'\n\nPosso preparar uma proposta sem compromisso?',
+               'Oi! Encontrei o '+nome+' no Google e notei que ainda não têm site próprio.\n\nA maioria dos clientes pesquisa antes de comprar — sem site, muita oportunidade vai embora.\n\nNa '+ag+' desenvolvemos sites modernos com IA, entrega rápida e preço justo.\n\n'+url+'\n\nPosso te enviar uma proposta?'],
+      amigavel: ['Oi! 😊 Vi o '+nome+' no Google e fiquei curioso(a)...\n\nVocês ainda não têm um site, né? Isso pode estar te fazendo perder clientes todo dia!\n\nSou da '+ag+' — a gente cria sites incríveis com IA, rápido e sem complicação!\n\nDá uma olhadinha: '+url+'\n\nVamos bater um papo? 🚀'],
+      formal: ['Prezado(a),\n\nAo pesquisar '+segAtual+' na região, identifiquei o '+nome+' e notei a ausência de um site institucional.\n\nUm site profissional representa um diferencial competitivo relevante para captação de clientes via busca orgânica.\n\nA '+ag+' oferece desenvolvimento de sites com inteligência artificial, com entrega ágil e custo acessível.\n\nConheça: '+url+'\n\nEstou à disposição para uma proposta personalizada.'],
+    },
+    ruim: {
+      direto: ['Olá! Vi o site do '+nome+' e queria compartilhar algumas ideias de melhoria.\n\nCom IA é possível modernizar o visual, melhorar o Google e aumentar conversões — rápido e sem dor de cabeça.\n\nSou da '+ag+'. Veja: '+url+'\n\nPosso te mostrar como ficaria?'],
+      amigavel: ['Oi! 😊 Vi o site do '+nome+' e pensei em como ficaria ainda mais incrível!\n\nNa '+ag+' a gente reformula sites com IA — mais moderno, rápido e melhor no Google.\n\n'+url+'\n\nVamos conversar? Sem compromisso! 🚀'],
+      formal: ['Prezado(a),\n\nAnalisando a presença digital do '+nome+', identifiquei oportunidades de melhoria no site atual.\n\nA '+ag+' é especializada em modernização de sites com IA, com foco em performance e conversão.\n\n'+url+'\n\nEstaria disponível para uma conversa?'],
+    },
+    sim: {
+      direto: ['Olá! Vi o '+nome+' online e queria mostrar como podemos elevar ainda mais sua presença digital.\n\nNa '+ag+' usamos IA para criar sites de alta performance que convertem mais visitantes em clientes.\n\nVeja: '+url+'\n\nPosso te apresentar algumas ideias?'],
+      amigavel: ['Oi! 😊 Vi o '+nome+' online e adorei o negócio de vocês!\n\nSou da '+ag+' — criamos sites com IA que aparecem mais no Google e trazem mais clientes.\n\n'+url+'\n\nPodemos conversar? 🚀'],
+      formal: ['Prezado(a),\n\nConheci o '+nome+' e gostaria de apresentar possibilidades para ampliar seus resultados digitais.\n\nA '+ag+' desenvolve sites com inteligência artificial focados em performance e conversão.\n\n'+url+'\n\nEstaria disponível para uma conversa?'],
+    },
+  };
+  var g = b[temSite]||b['nao'], l = g[tone]||g['direto'];
+  return l[Math.floor(Math.random()*l.length)];
+}
+
+function gerarMensagem() {
+  var nome = document.getElementById('f-nome').value.trim() || 'seu negócio';
+  document.getElementById('msg-texto').textContent = getMensagem(nome, document.getElementById('f-site').value, toneAtual);
+  document.getElementById('msg-area').style.display = 'block';
+}
+
+function enviarWpp() {
+  var tel = document.getElementById('f-tel').value.trim().replace(/\D/g,'');
+  if (!tel) { alert('Preencha o WhatsApp do lead!'); return; }
+  var num = tel.startsWith('55') ? tel : '55'+tel;
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(document.getElementById('msg-texto').textContent), '_blank');
+}
+
+function copiarMensagem() {
+  navigator.clipboard.writeText(document.getElementById('msg-texto').textContent).then(function(){
+    var ok = document.getElementById('copy-ok');
+    ok.style.display='inline'; setTimeout(function(){ ok.style.display='none'; }, 2000);
+  });
+}
+
+function atualizarFiltroSegmentos() {
+  var sel = document.getElementById('filtro-seg');
+  if (!sel) return;
+  var atual = sel.value;
+  var segs = [...new Set(leads.map(function(l){ return l.seg; }).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Todos os segmentos</option>' +
+    segs.map(function(s){ return '<option value="'+s+'">'+(s.charAt(0).toUpperCase()+s.slice(1))+'</option>'; }).join('');
+  sel.value = atual;
+}
+
+function renderTabela() {
+  atualizarFiltroSegmentos();
+  var busca = (document.getElementById('filtro-nome').value||'').toLowerCase();
+  var fseg = document.getElementById('filtro-seg').value.toLowerCase();
+  var fst = document.getElementById('filtro-status').value;
+  var fsi = document.getElementById('filtro-site').value;
+  var f = leads.filter(function(l){
+    if (busca && l.nome.toLowerCase().indexOf(busca)===-1) return false;
+    if (fseg && (l.seg||'').toLowerCase() !== fseg) return false;
+    if (fst && l.status!==fst) return false;
+    if (fsi && l.site!==fsi) return false;
+    return true;
+  });
+  var tbody = document.getElementById('leads-tbody');
+  var empty = document.getElementById('lista-empty');
+  if (!f.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  var sl={nao:'Sem site',ruim:'Desatualizado',sim:'Com site'};
+  var st={novo:'Novo',contato:'Contato enviado',respondeu:'Respondeu',fechado:'Fechado',naointeressou:'Não interessou'};
+  tbody.innerHTML = f.map(function(l){
+    var ri = leads.indexOf(l);
+    var tel = l.tel ? l.tel.replace(/\D/g,'') : '';
+    var num = tel ? (tel.startsWith('55')?tel:'55'+tel) : '';
+    var wpp = tel ? '<a href="https://wa.me/'+num+'" target="_blank" style="color:var(--blue-lt);font-size:12px;">'+l.tel+'</a>' : '<span style="color:var(--text3);">—</span>';
+    return '<tr>'+
+      '<td style="font-weight:500;">'+l.nome+'</td>'+
+      '<td style="color:var(--text2);font-size:12px;">'+(l.seg||'—')+'</td>'+
+      '<td style="color:var(--text2);font-size:12px;">'+(l.cidade||'—')+'</td>'+
+      '<td>'+wpp+'</td>'+
+      '<td><span class="badge badge-'+l.site+'">'+(sl[l.site]||'—')+'</span></td>'+
+      '<td><span class="badge badge-'+l.status+'">'+(st[l.status]||'—')+'</span></td>'+
+      '<td class="actions">'+
+        '<button class="btn btn-sm" onclick="abrirModal('+ri+')">Editar</button>'+
+        '<button class="btn btn-sm" style="color:var(--red);border-color:rgba(231,76,60,0.3);" onclick="removerLead('+ri+')">&#215;</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+}
+
+async function removerLead(idx){
+  if(!confirm('Remover este lead?')) return;
+  var lead = leads[idx];
+  setLoading(true);
+  try {
+    await deletarLeadSheet(lead);
+    showToast('✓ Lead removido', 'ok');
+    await carregarLeads();
+  } catch(e) {
+    showToast('Erro ao remover: '+e.message, 'erro');
+  }
+  setLoading(false);
+}
+
+function abrirModal(idx){
+  editIdx=idx; var l=leads[idx];
+  document.getElementById('e-nome').value=l.nome;
+  document.getElementById('e-seg').value=l.seg||'';
+  document.getElementById('e-tel').value=l.tel||'';
+  document.getElementById('e-cidade').value=l.cidade||'';
+  document.getElementById('e-site').value=l.site;
+  document.getElementById('e-social').value=l.social||'sim';
+  document.getElementById('e-status').value=l.status;
+  document.getElementById('e-obs').value=l.obs||'';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function fecharModal(){ document.getElementById('modal-overlay').classList.remove('open'); editIdx=-1; }
+
+async function salvarEdicao(){
+  if(editIdx<0) return;
+  var l=leads[editIdx];
+  l.nome=document.getElementById('e-nome').value.trim();
+  l.seg=document.getElementById('e-seg').value.trim();
+  l.tel=document.getElementById('e-tel').value.trim();
+  l.cidade=document.getElementById('e-cidade').value.trim();
+  l.site=document.getElementById('e-site').value;
+  l.social=document.getElementById('e-social').value;
+  l.status=document.getElementById('e-status').value;
+  l.obs=document.getElementById('e-obs').value.trim();
+  setLoading(true);
+  try {
+    await atualizarLeadSheet(l);
+    showToast('✓ Lead atualizado!', 'ok');
+    await carregarLeads();
+  } catch(e) {
+    showToast('Erro ao atualizar: '+e.message, 'erro');
+  }
+  fecharModal(); setLoading(false);
+}
+
+function exportarExcel(){
+  if(!leads.length){ alert('Nenhum lead para exportar!'); return; }
+  var sl={nao:'Sem site',ruim:'Site desatualizado',sim:'Com site'};
+  var st={novo:'Novo',contato:'Contato enviado',respondeu:'Respondeu',fechado:'Fechado',naointeressou:'Não interessou'};
+  var dados=[['Nome do Negócio','Segmento','Cidade','WhatsApp','Tem Site?','Redes Sociais?','Status','Data de Cadastro','Observações','Link WhatsApp']];
+  leads.forEach(function(l){
+    var tel=(l.tel||'').replace(/\D/g,'');
+    var num=tel?(tel.startsWith('55')?tel:'55'+tel):'';
+    dados.push([l.nome,l.seg||'',l.cidade||'',l.tel||'',sl[l.site]||'',l.social==='sim'?'Sim':'Não',st[l.status]||'',l.data||'',l.obs||'',num?'https://wa.me/'+num:'']);
+  });
+  var ws=XLSX.utils.aoa_to_sheet(dados);
+  ws['!cols']=[24,16,14,16,18,14,18,14,30,35].map(function(w){ return {wch:w}; });
+  var hoje=new Date().toISOString().slice(0,10);
+  var resumo=[
+    ['Fábrica de Sites IA Visual — Prospecção'],['Exportado em:',hoje],[''],
+    ['Total:',leads.length],
+    ['Sem site:',leads.filter(function(l){return l.site==='nao';}).length],
+    ['Contatados:',leads.filter(function(l){return l.status==='contato'||l.status==='respondeu';}).length],
+    ['Fechados:',leads.filter(function(l){return l.status==='fechado';}).length],
+  ];
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Leads');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(resumo),'Resumo');
+  XLSX.writeFile(wb,'leads_'+hoje+'.xlsx');
+}
+
+document.getElementById('modal-overlay').addEventListener('click',function(e){ if(e.target===this) fecharModal(); });
+renderScripts(); atualizarLinks(); atualizarStats(); iniciarSheet();
+</script>
+</body>
+</html>
