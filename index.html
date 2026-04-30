@@ -627,14 +627,14 @@ function jsonpPost(payload) {
 async function appendLead(lead) {
   var sl={nao:'Sem site',ruim:'Site desatualizado',sim:'Com site'};
   var st={novo:'Novo',contato:'Contato enviado',respondeu:'Respondeu',fechado:'Fechado',naointeressou:'Não interessou'};
-  var row=[lead.id,lead.nome,lead.seg,lead.cidade,lead.tel,sl[lead.site]||'',lead.social==='sim'?'Sim':'Não',st[lead.status]||'',lead.obs,lead.data];
+  var row=[lead.nome,lead.seg,lead.cidade,lead.tel,sl[lead.site]||'',lead.social==='sim'?'Sim':'Não',st[lead.status]||'',lead.data,lead.obs];
   await jsonpPost({action:'append', row:row});
 }
 
 async function atualizarLeadSheet(lead) {
   var sl={nao:'Sem site',ruim:'Site desatualizado',sim:'Com site'};
   var st={novo:'Novo',contato:'Contato enviado',respondeu:'Respondeu',fechado:'Fechado',naointeressou:'Não interessou'};
-  var row=[lead.id,lead.nome,lead.seg,lead.cidade,lead.tel,sl[lead.site]||'',lead.social==='sim'?'Sim':'Não',st[lead.status]||'',lead.obs,lead.data];
+  var row=[lead.nome,lead.seg,lead.cidade,lead.tel,sl[lead.site]||'',lead.social==='sim'?'Sim':'Não',st[lead.status]||'',lead.data,lead.obs];
   await jsonpPost({action:'update', rowIndex:lead._row, row:row});
 }
 
