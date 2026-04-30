@@ -626,7 +626,6 @@ var segAtual = 'restaurantes';
 var toneAtual = 'direto';
 var prospTone = 'direto';
 var editIdx = -1;
-var prospIdx = 0; // índice atual no modo prospectar
 
 function showToast(msg, tipo) {
   var t = document.getElementById('toast');
@@ -770,13 +769,24 @@ async function adicionarLead() {
 }
 
 // ── PROSPECTAR ──────────────────────────────────────────────
+var prospLeadAtual = null;
+
 function getLeadsNovos() {
   return leads.filter(function(l){ return l.status === 'novo'; });
 }
 
 function renderProspectar() {
+  if (prospLeadAtual) {
+    renderProspCard(prospLeadAtual);
+  } else {
+    renderProspLista();
+  }
+}
+
+function renderProspLista() {
   var novos = getLeadsNovos();
   var el = document.getElementById('prosp-content');
+  var sl = {nao:'Sem site', ruim:'Site desatualizado', sim:'Com site'};
 
   if (!novos.length) {
     el.innerHTML = '<div class="prosp-empty">'+
@@ -787,20 +797,56 @@ function renderProspectar() {
     return;
   }
 
-  if (prospIdx >= novos.length) prospIdx = 0;
-  var lead = novos[prospIdx];
+  var linhas = novos.map(function(lead) {
+    return '<tr onclick="selecionarLeadProsp(\''+lead.id+'\')" style="cursor:pointer;">'+
+      '<td style="font-weight:600;color:var(--sand);">'+lead.nome+'</td>'+
+      '<td style="color:var(--text2);font-size:12px;">'+(lead.seg||'—')+'</td>'+
+      '<td style="color:var(--text2);font-size:12px;">'+(lead.cidade||'—')+'</td>'+
+      '<td><span class="badge badge-'+lead.site+'">'+(sl[lead.site]||'—')+'</span></td>'+
+      '<td style="color:var(--text2);font-size:12px;">'+(lead.tel||'—')+'</td>'+
+      '<td><button class="btn btn-green" style="padding:5px 14px;font-size:10px;" onclick="event.stopPropagation();selecionarLeadProsp(\''+lead.id+'\')">&#9654; Prospectar</button></td>'+
+    '</tr>';
+  }).join('');
+
+  el.innerHTML =
+    '<div class="prosp-header">'+
+      '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">&#9670; Leads para prospectar</div>'+
+      '<div class="prosp-counter"><span>'+novos.length+'</span> leads novos</div>'+
+    '</div>'+
+    '<div class="card" style="padding:0;overflow:hidden;">'+
+      '<div style="overflow-x:auto;">'+
+        '<table>'+
+          '<thead><tr>'+
+            '<th>Nome</th><th>Segmento</th><th>Cidade</th><th>Site</th><th>WhatsApp</th><th>Ação</th>'+
+          '</tr></thead>'+
+          '<tbody>'+linhas+'</tbody>'+
+        '</table>'+
+      '</div>'+
+    '</div>';
+  return;
+}
+
+function selecionarLeadProsp(id) {
+  var lead = leads.find(function(l){ return l.id === id; });
+  if (!lead) return;
+  prospLeadAtual = lead;
+  renderProspCard(lead);
+}
+
+function renderProspCard(lead) {
+  var el = document.getElementById('prosp-content');
   var msg = getMensagem(lead.nome, lead.site, prospTone);
   var sl = {nao:'Sem site', ruim:'Site desatualizado', sim:'Com site'};
   var tel = (lead.tel||'').replace(/\D/g,'');
   var num = tel ? (tel.startsWith('55') ? tel : '55'+tel) : '';
   var wppUrl = num ? 'https://web.whatsapp.com/send?phone='+num+'&text='+encodeURIComponent(msg) : '';
+  var novos = getLeadsNovos();
 
   el.innerHTML =
     '<div class="prosp-header">'+
-      '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">&#9654; Modo Prospecção</div>'+
-      '<div class="prosp-counter">Lead <span>'+(prospIdx+1)+'</span> de <span>'+novos.length+'</span> novos</div>'+
+      '<button class="btn btn-sm" onclick="voltarListaProsp()">← Voltar à lista</button>'+
+      '<div class="prosp-counter"><span>'+novos.length+'</span> leads novos restantes</div>'+
     '</div>'+
-
     '<div class="prosp-lead-card">'+
       '<div class="prosp-nome">'+lead.nome+'</div>'+
       '<div class="prosp-meta">'+
@@ -809,42 +855,39 @@ function renderProspectar() {
         '<div class="prosp-meta-item">🌐 <strong>'+(sl[lead.site]||'—')+'</strong></div>'+
         (lead.tel ? '<div class="prosp-meta-item">📱 <strong>'+lead.tel+'</strong></div>' : '')+
       '</div>'+
-
       '<div class="prosp-tone-row">'+
         '<span class="prosp-tone-label">Tom:</span>'+
-        '<button class="tone-pill'+(prospTone==='direto'?' active':'')+'" onclick="selProspTone(this,\'direto\')">Direto</button>'+
-        '<button class="tone-pill'+(prospTone==='amigavel'?' active':'')+'" onclick="selProspTone(this,\'amigavel\')">Amigável</button>'+
-        '<button class="tone-pill'+(prospTone==='formal'?' active':'')+'" onclick="selProspTone(this,\'formal\')">Formal</button>'+
-        '<button class="btn btn-sm" style="margin-left:auto;" onclick="renderProspectar()">↺ Outra versão</button>'+
+        '<button class="tone-pill'+(prospTone==='direto'?' active':'')+'" onclick="selProspTone(\'direto\')">Direto</button>'+
+        '<button class="tone-pill'+(prospTone==='amigavel'?' active':'')+'" onclick="selProspTone(\'amigavel\')">Amigável</button>'+
+        '<button class="tone-pill'+(prospTone==='formal'?' active':'')+'" onclick="selProspTone(\'formal\')">Formal</button>'+
+        '<button class="btn btn-sm" style="margin-left:auto;" onclick="renderProspCard(prospLeadAtual)">↺ Outra versão</button>'+
       '</div>'+
-
       '<div class="prosp-msg-box" id="prosp-msg">'+msg+'</div>'+
-
       '<div class="prosp-actions">'+
-        (wppUrl ?
-          '<button class="btn btn-green" onclick="abrirWppProsp(\''+wppUrl+'\')">&#9654; Abrir WhatsApp Web</button>' :
-          '<span style="color:var(--red);font-size:12px;">⚠ Sem WhatsApp cadastrado</span>'
-        )+
+        (wppUrl ? '<button class="btn btn-green" onclick="abrirWppProsp(\''+wppUrl+'\')">&#9654; Abrir WhatsApp Web</button>' :
+          '<span style="color:var(--red);font-size:12px;">⚠ Sem WhatsApp cadastrado</span>')+
         '<button class="btn" onclick="copiarProsp()">📋 Copiar mensagem</button>'+
-        '<button class="btn btn-skip" onclick="proximoLead()">Pular →</button>'+
         '<button class="btn btn-nao" onclick="marcarNaoInteressou()">✕ Não interessou</button>'+
       '</div>'+
     '</div>'+
-
-    '<div style="display:flex;gap:10px;align-items:center;padding:4px 0;">'+
+    '<div style="display:flex;gap:10px;padding:4px 0;">'+
       '<button class="btn btn-blue" onclick="marcarContatoEnviado()" style="flex:1;justify-content:center;padding:14px;">'+
-        '✓ Marcar como "Contato Enviado" e ir para o próximo'+
+        '✓ Marcar como "Contato Enviado" e voltar à lista'+
       '</button>'+
     '</div>';
 }
 
-function selProspTone(btn, t) {
+function voltarListaProsp() {
+  prospLeadAtual = null;
+  renderProspLista();
+}
+
+function selProspTone(t) {
   prospTone = t;
-  renderProspectar();
+  if (prospLeadAtual) renderProspCard(prospLeadAtual);
 }
 
 function abrirWppProsp(url) {
-  // Abre sempre na mesma aba nomeada "wpp_prosp"
   window.open(url, 'wpp_prosp', 'width=1100,height=700,noopener');
 }
 
@@ -857,18 +900,15 @@ function copiarProsp() {
 }
 
 async function marcarContatoEnviado() {
-  var novos = getLeadsNovos();
-  if (!novos.length) return;
-  var lead = novos[prospIdx];
-  lead.status = 'contato';
+  if (!prospLeadAtual) return;
+  prospLeadAtual.status = 'contato';
   setLoading(true);
   try {
-    await atualizarLeadSheet(lead);
+    await atualizarLeadSheet(prospLeadAtual);
     showToast('✓ Contato marcado!', 'ok');
+    prospLeadAtual = null;
     await carregarLeads();
-    // prospIdx se mantém — o próximo lead assume a posição
-    if (prospIdx >= getLeadsNovos().length) prospIdx = 0;
-    renderProspectar();
+    renderProspLista();
   } catch(e) {
     showToast('Erro: '+e.message, 'erro');
   }
@@ -876,29 +916,21 @@ async function marcarContatoEnviado() {
 }
 
 async function marcarNaoInteressou() {
-  var novos = getLeadsNovos();
-  if (!novos.length) return;
-  var lead = novos[prospIdx];
-  lead.status = 'naointeressou';
+  if (!prospLeadAtual) return;
+  prospLeadAtual.status = 'naointeressou';
   setLoading(true);
   try {
-    await atualizarLeadSheet(lead);
+    await atualizarLeadSheet(prospLeadAtual);
     showToast('Lead marcado como não interessou', 'info');
+    prospLeadAtual = null;
     await carregarLeads();
-    if (prospIdx >= getLeadsNovos().length) prospIdx = 0;
-    renderProspectar();
+    renderProspLista();
   } catch(e) {
     showToast('Erro: '+e.message, 'erro');
   }
   setLoading(false);
 }
 
-function proximoLead() {
-  var novos = getLeadsNovos();
-  if (!novos.length) return;
-  prospIdx = (prospIdx + 1) % novos.length;
-  renderProspectar();
-}
 // ─────────────────────────────────────────────────────────────
 
 function getMensagem(nome, temSite, tone) {
@@ -1081,7 +1113,7 @@ function setTab(nome) {
   document.getElementById('panel-'+nome).classList.add('active');
   document.getElementById('tab-btn-'+nome).classList.add('active');
   if (nome === 'lista') renderTabela();
-  if (nome === 'prospectar') { prospIdx = 0; renderProspectar(); }
+  if (nome === 'prospectar') { prospLeadAtual = null; renderProspectar(); }
   atualizarStats();
 }
 
