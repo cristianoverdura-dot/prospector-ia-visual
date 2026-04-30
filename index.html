@@ -559,17 +559,18 @@ function processarDados(data) {
       var socialVal = (row[5]||'').toString();
       var statusVal = (row[6]||'').toString();
       leads.push({
-        id: String(Date.now()+i),
-        nome: (row[0]||'').toString(),
-        seg:  (row[1]||'').toString(),
-        cidade: (row[2]||'').toString(),
-        tel:  (row[3]||'').toString(),
-        site: siteVal==='Sem site'?'nao': siteVal==='Site desatualizado'?'ruim': siteVal==='Com site'?'sim':'nao',
-        social: socialVal==='Sim'?'sim':'nao',
-        status: statusVal==='Contato enviado'?'contato': statusVal==='Respondeu'?'respondeu': statusVal==='Fechado'?'fechado': statusVal==='Não interessou'?'naointeressou':'novo',
-        obs:  (row[8]||'').toString(),
-        data: (row[7]||'').toString(),
-        _row: i+1
+  id: String(Date.now()+i),
+  nome: (row[0]||'').toString(),
+  seg:  (row[1]||'').toString(),
+  cidade: (row[2]||'').toString(),
+  tel:  (row[3]||'').toString(),
+  site: siteVal==='Sem site'?'nao': siteVal==='Site desatualizado'?'ruim': siteVal==='Com site'?'sim':'nao',
+  social: socialVal==='Sim'?'sim':'nao',
+  status: statusVal==='Contato enviado'?'contato': statusVal==='Respondeu'?'respondeu': statusVal==='Fechado'?'fechado': statusVal==='Não interessou'?'naointeressou':'novo',
+  obs:  (row[7]||'').toString(),
+  data: (row[8]||'').toString(),
+  _row: i+1
+});
       });
     }
   }
